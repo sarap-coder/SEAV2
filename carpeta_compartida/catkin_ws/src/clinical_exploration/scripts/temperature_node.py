@@ -15,7 +15,7 @@ class TemperatureNode:
         self.temp_pub = rospy.Publisher('/temperature_result', Float32, queue_size=10)
         
         # Escuchar instrucciones del maestro
-        rospy.Subscriber('/clinical_instructions', String, self.instruction_callback)
+        rospy.Subscriber('/clinical_instructions', String, self.measure_temperature)
         
         rospy.loginfo("🌡️ Nodo temperatura listo")
 
