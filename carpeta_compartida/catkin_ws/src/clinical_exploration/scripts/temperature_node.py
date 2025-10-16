@@ -5,6 +5,7 @@ import cv2
 import os
 import time
 from tensorflow.keras.models import load_model
+import h5py
 import numpy as np 
 
 class TemperatureNode:
@@ -20,7 +21,7 @@ class TemperatureNode:
         rospy.loginfo("🌡️ Nodo temperatura listo")
 
         # Cargar modelo y ruta
-        self.model = load_model("modelo_cnn_mnist_reconocimiento_numerico.h5")
+        self.model = h5py.File("pesos_cnn_mnist_reconocimiento_numerico.h5", "r")
         # Nombre de ruta mantiene fijo en la camara, puede variar la ubicación
         self.ruta_carpeta = "E:/19700101/" 
 
