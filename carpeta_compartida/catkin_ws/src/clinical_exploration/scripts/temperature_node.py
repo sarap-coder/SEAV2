@@ -4,8 +4,9 @@ from std_msgs.msg import Float32, String
 import cv2
 import os
 import time
-from tensorflow.keras.models import load_model
-import h5py
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
+from tensorflow.keras.optimizers import Adam
 import numpy as np 
 
 class TemperatureNode:
@@ -20,8 +21,31 @@ class TemperatureNode:
         
         rospy.loginfo("🌡️ Nodo temperatura listo")
 
-        # Cargar modelo y ruta
-        self.model = h5py.File("pesos_cnn_mnist_reconocimiento_numerico.h5", "r")
+        # Crear y compilar red identica a la preentrenada
+        self.model = Sequential([
+            Conv2D(32, (3,3), activation="relu", input_shape=(28,28,1)),
+            BatchNormalization(),
+            Conv2D(32, (3,3), activation="relu"),
+            MaxPooling2D(2,2),
+            Dropout(0.25),
+
+            Conv2D(64, (3,3), activation="relu"),
+            BatchNormalization(),
+            Conv2D(64, (3,3), activation="relu"),
+            MaxPooling2D(2,2),
+            Dropout(0.25),
+
+            Flatten(),
+            Dense(256, activation="relu"),
+            Dropout(0.4),
+            Dense(10, activation="softmax")
+        ])
+
+        self.model.compile(optimizer=Adam(learning_rate=0.0005), loss='categorical_crossentropy', metrics=['accuracy'])
+
+        # Cargar pesos guardados en TF 2.13
+        self.model.load_weights("pesos_cnn_mnist_reconocimiento_numerico.h5")
+
         # Nombre de ruta mantiene fijo en la camara, puede variar la ubicación
         self.ruta_carpeta = "E:/19700101/" 
 
