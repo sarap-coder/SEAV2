@@ -20,7 +20,7 @@ class TemperatureNode:
         rospy.loginfo("🌡️ Nodo temperatura listo")
 
         # Cargar modelo y ruta
-        self.model = load_model("modelo_cnn_digitos.h5")
+        self.model = load_model("modelo_cnn_mnist_reconocimiento_numerico.h5")
         # Nombre de ruta mantiene fijo en la camara, puede variar la ubicación
         self.ruta_carpeta = "E:/19700101/" 
 
