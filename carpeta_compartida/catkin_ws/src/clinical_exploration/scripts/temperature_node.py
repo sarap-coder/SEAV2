@@ -8,6 +8,7 @@ from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
 from tensorflow.keras.optimizers import Adam
 import numpy as np 
+import os
 
 class TemperatureNode:
     def __init__(self):
@@ -47,11 +48,25 @@ class TemperatureNode:
         self.model.load_weights("pesos_cnn_mnist_reconocimiento_numerico.h5")
 
         # Nombre de ruta mantiene fijo en la camara, puede variar la ubicación
-        self.ruta_carpeta = "E:/19700101/" 
+        self.unidades = ["D:/", "E:/", "F:/", "G:/", "H:/"]
+        self.ruta_carpeta = str()
+        self.encontrar_ruta()
 
         # Registro de archivos vistos
         self.archivos_vistos = set()
-    
+        
+    def encontrar_ruta(self):
+        for unidad in self.unidades:
+            # Verifica si la unidad existe
+            if os.path.exists(unidad):
+                # Construye la ruta específica que antes tenías fija
+                ruta_carpeta = os.path.join(unidad, "19700101")
+                
+                if os.path.exists(self.ruta_carpeta):
+                    self.ruta_carpeta = ruta_carpeta
+                    rospy.loginfo(f"Ruta de carpeta encontrada: {self.ruta_carpeta}")
+                    return
+                
     def instruction_callback(self, msg):
         if "temperature" in msg.data:
             rospy.loginfo("Midiendo temperatura...")
