@@ -1,0 +1,11 @@
+<launch>
+  <param name="evaluar_reflejos_node/image_topic" value="/xtion/rgb/image_raw" />
+  <param name="evaluar_reflejos_node/target_class" value="bottle" />
+  <param name="evaluar_reflejos_node/conf_thres" value="0.45" />
+  <param name="evaluar_reflejos_node/observe_seconds" value="3.0" />
+  <param name="evaluar_reflejos_node/min_hits" value="3" />
+  <param name="evaluar_reflejos_node/gripper_open" value="0.045" />
+  <rosparam param="evaluar_reflejos_node/offer_pose">[0.0, -0.6, 1.2, 0.0, 0.4, 0.0, 0.0]</rosparam>
+
+  <node pkg="test_reflejos" type="evaluar_reflejos.py" name="evaluar_reflejos_node" output="screen" />
+</launch>

@@ -22,8 +22,10 @@ RUN apt update && apt install -y rviz \
 
 RUN pip install catkin_tools \
                 tensorboard \
-                opencv-python
-
+                opencv-python \
+                ultralytics \
+                django
+                
 RUN rm -rf /var/lib/apt/lists/* && \
     groupadd -g 1000 tiago && \
     useradd -ms /bin/bash tiago -u 1000 -g 1000 && \
