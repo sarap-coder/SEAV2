@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Evaluación de reflejos</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: white;
+      color: black;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+    h1 {
+      margin-top: 20px;
+      text-align: center;
+    }
+    .volver {
+      position: absolute;
+      bottom: 20px;
+      right: 30px;
+      padding: 10px 16px;
+      background: #e0e0e0;
+      color: black;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+    p {
+      margin-top: 40px;
+      font-size: 18px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Evaluación de reflejos</h1>
+
+  <!-- Ejecutamos automáticamente el script -->
+  <iframe src="{% url 'iniciar_evaluacion_reflejos' %}" style="display:none;"></iframe>
+
+  <p>Ejecutando evaluación de reflejos…</p>
+
+  <button class="volver" onclick="window.location.href='{% url 'analisis' %}'">
+    Volver
+  </button>
+
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <title>Análisis de postura</title>
+  <style>
+    body {
+      margin: 0;
+      background-color: white;
+      color: black;
+      font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      height: 100vh;
+    }
+    h1 {
+      margin-top: 20px;
+      text-align: center;
+    }
+    #pose-container {
+      margin-top: 40px;
+      width: 70%;
+      height: 60vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border: 1px solid #ccc;
+      border-radius: 8px;
+      overflow: hidden;
+      background: #f8f8f8;
+    }
+    #pose-img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+    .volver {
+      position: absolute;
+      bottom: 20px;
+      right: 30px;
+      padding: 10px 16px;
+      background: #e0e0e0;
+      color: black;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Análisis de postura</h1>
+
+  <iframe src="{% url 'iniciar_postura' %}" style="display:none;"></iframe>
+
+  <div id="pose-container">
+    <img id="pose-img" src="{% url 'video_feed' %}" alt="Cargando...">
+  </div>
+
+  <button class="volver" onclick="window.location.href='{% url 'analisis' %}'">
+    Volver
+  </button>
+
+  <script>
+    setInterval(() => {
+      const img = document.getElementById('pose-img');
+      img.src = "{% url 'video_feed' %}?t=" + Date.now();
+    }, 1000);
+  </script>
+
+</body>
+</html>
