@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
+#!/usr/bin/env python3
 import rospy
 from std_msgs.msg import Float32, String
 import cv2
 import os
 import time
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Conv2D, MaxPooling2D, Flatten, Dense, Dropout, BatchNormalization
-from tensorflow.keras.optimizers import Adam
+import pytesseract
 import numpy as np 
 import os
 
@@ -21,31 +20,6 @@ class TemperatureNode:
         rospy.Subscriber('/clinical_instructions', String, self.measure_temperature)
         
         rospy.loginfo("🌡️ Nodo temperatura listo")
-
-        # Crear y compilar red identica a la preentrenada
-        self.model = Sequential([
-            Conv2D(32, (3,3), activation="relu", input_shape=(28,28,1)),
-            BatchNormalization(),
-            Conv2D(32, (3,3), activation="relu"),
-            MaxPooling2D(2,2),
-            Dropout(0.25),
-
-            Conv2D(64, (3,3), activation="relu"),
-            BatchNormalization(),
-            Conv2D(64, (3,3), activation="relu"),
-            MaxPooling2D(2,2),
-            Dropout(0.25),
-
-            Flatten(),
-            Dense(256, activation="relu"),
-            Dropout(0.4),
-            Dense(10, activation="softmax")
-        ])
-
-        self.model.compile(optimizer=Adam(learning_rate=0.0005), loss='categorical_crossentropy', metrics=['accuracy'])
-
-        # Cargar pesos guardados en TF 2.13
-        self.model.load_weights("pesos_cnn_mnist_reconocimiento_numerico.h5")
 
         # Nombre de ruta mantiene fijo en la camara, puede variar la ubicación
         self.unidades = ["D:/", "E:/", "F:/", "G:/", "H:/"]
@@ -85,6 +59,7 @@ class TemperatureNode:
         print("Esperando nuevas imágenes en", self.ruta_carpeta)
         if self.ruta_carpeta is not None:
             archivos = [foto for foto in os.listdir(self.ruta_carpeta) if foto.lower().endswith((".jpeg"))]
+            custom_config = r'--oem 3 --psm 6 outputbase digits'
         else:
             return
         nuevos = [foto for foto in archivos if foto not in self.archivos_vistos]
@@ -107,47 +82,11 @@ class TemperatureNode:
                 thresh = 255 - thresh
                 thresh = cv2.morphologyEx(thresh, cv2.MORPH_OPEN, np.ones((2, 2), np.uint8))
 
-                # Segmentar:
-                contours, _ = cv2.findContours(thresh, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                # Reconocer digitos:
+                texto = pytesseract.image_to_string(roi, config=custom_config)
 
-                # Ordenar contornos:
-                contours = sorted(contours, key=lambda c: cv2.boundingRect(c)[0])
-
-                # Sepearar y predecir dígitos:
-                digitos = []
-                for c in contours:
-                    x, y, w, h = cv2.boundingRect(c)
-
-                    # filtrar ruido
-                    if h > 10 and w > 5:  
-
-                        # Recortar dígito:
-                        digit = thresh[y:y+h, x:x+w]
-
-                        # ROI:
-                        cv2.rectangle(roi, (x, y), (x+w, y+h), (0, 255, 0), 1)  
-                        alto, ancho = digit.shape
-                        borde = int(0.2 * max(alto, ancho))
-
-                        # Añadir borde:
-                        digit = cv2.copyMakeBorder(
-                            digit,
-                            top=borde,
-                            bottom=borde,
-                            left=borde,
-                            right=borde,
-                            borderType=cv2.BORDER_CONSTANT,
-                            value=0  
-                        )
-                        # Preparar imagen para la CNN:
-                        digit = cv2.resize(digit, (28, 28))
-                        digit = digit.astype("float32") / 255.0
-                        digit = np.expand_dims(digit, axis=(0, -1))
-
-                        # Predecir con modelo:
-                        pred = self.model.predict(digit)
-                        numero = np.argmax(pred)
-                        digitos.append(str(numero))         
+                # Tomar solo los primeros 3 dígitos reconocidos (por si detecta más)
+                digitos = ''.join([c for c in texto if c.isdigit()])[:3]
 
                 # Calcular valor de temperatura:
                 if len(digitos) == 3:
