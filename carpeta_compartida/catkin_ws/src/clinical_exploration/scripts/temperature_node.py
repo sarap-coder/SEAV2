@@ -1,5 +1,4 @@
 #!/usr/bin/env python3
-#!/usr/bin/env python3
 import rospy
 from std_msgs.msg import Float32, String
 import cv2
@@ -16,11 +15,6 @@ class TemperatureNode:
         # Publicar resultados
         self.temp_pub = rospy.Publisher('/temperature_result', Float32, queue_size=10)
         
-        # Escuchar instrucciones del maestro
-        rospy.Subscriber('/clinical_instructions', String, self.measure_temperature)
-        
-        rospy.loginfo("🌡️ Nodo temperatura listo")
-
         # Nombre de ruta mantiene fijo en la camara, puede variar la ubicación
         self.unidades = ["D:/", "E:/", "F:/", "G:/", "H:/"]
         self.ruta_carpeta = str()
@@ -28,6 +22,11 @@ class TemperatureNode:
 
         # Registro de archivos vistos
         self.archivos_vistos = set()
+
+        # Escuchar instrucciones del maestro
+        rospy.Subscriber('/clinical_instructions', String, self.measure_temperature)
+        
+        rospy.loginfo("🌡️ Nodo temperatura listo")
         
     def encontrar_ruta(self):
         for unidad in self.unidades:
