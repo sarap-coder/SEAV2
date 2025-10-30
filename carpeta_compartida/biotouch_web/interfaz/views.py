@@ -3,7 +3,46 @@ from django.http import FileResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
 from django.views.decorators.clickjacking import xframe_options_exempt
 import os
+import rospy
+import cv2
+import os
+import cv2
+from django.http import StreamingHttpResponse, FileResponse, HttpResponseNotFound
+from django.views.decorators.clickjacking import xframe_options_exempt
+from std_msgs.msg import String
+import threading
+import rospy
+from sensor_msgs.msg import Image
+from cv_bridge import CvBridge
+import cv2
 
+
+last_pulse = "Sin datos"
+pulse_subscriber_initialized = False
+
+def init_pulse_listener():
+    global pulse_subscriber_initialized
+    if pulse_subscriber_initialized:
+        return
+    pulse_subscriber_initialized = True
+
+    def listener():
+        rospy.Subscriber("/pulse_rate", String, pulse_callback)
+        rospy.spin()
+
+    threading.Thread(target=listener, daemon=True).start()
+
+
+from django.http import JsonResponse
+
+def pulse_feed(request):
+    init_pulse_listener()
+    return JsonResponse({"data": last_pulse})
+
+
+def pulse_callback(msg):
+    global last_pulse
+    last_pulse = msg.data
 
 # Ruta donde el nodo ROS deja la imagen
 POSE_IMG_PATH = "/tmp/tiago_pose_latest.jpg"
@@ -36,6 +75,16 @@ def iniciar_evaluacion_reflejos(request):
     subprocess.Popen(launch_cmd, shell=True)
     return redirect('analisis_reflejos_live')
 
+def analisis_pulso_live(request):
+    """
+    Vista para ejecutar el análisis de pulso SIN mostrar cámara.
+    """
+    return render(request, 'interfaz/analisis_pulso_live.html')
+
+def iniciar_pulso(request):
+    launch_cmd = _ros_env_cmd("nohup rosrun clinical_exploration pulse_node.py >/tmp/pulse_node.log 2>&1 &")
+    subprocess.Popen(launch_cmd, shell=True)
+    return redirect('analisis_pulso_live')
 
 
 def analisis_reflejos_live(request):
@@ -59,12 +108,15 @@ def _is_pose_node_running():
         return bool(out.strip())
     except Exception:
         return False
-
 def iniciar_postura(request):
-    print(">>> CLIC EN INICIAR POSTURA (Django lo recibió correctamente)")
+    """
+    Lanza el nodo de postura con rosrun en background (si no está ya corriendo).
+    """
     if not _is_pose_node_running():
         launch_cmd = _ros_env_cmd("nohup rosrun tiago_pose detectar_pose.py >/tmp/tiago_pose.log 2>&1 &")
         subprocess.Popen(launch_cmd, shell=True)
+
+    # Redirige a la pantalla de análisis
     return redirect('analisis')
 
 @xframe_options_exempt
