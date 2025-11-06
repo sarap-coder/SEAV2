@@ -1,0 +1,26 @@
+{% extends "interfaz/base.html" %}
+
+{% block title %}Registro{% endblock %}
+
+{% block content %}
+<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;background:#f9f9f9;font-family:Arial">
+
+  <form method="POST" style="border:1px solid #ccc;padding:24px;border-radius:8px;background:white;box-shadow:0 0 10px rgba(0,0,0,0.1);width:300px;text-align:center;">
+    {% csrf_token %}
+    <h2>Crear cuenta</h2>
+
+    <input type="text" name="username" placeholder="Usuario" required style="margin:6px 0;padding:8px;width:100%;">
+    <input type="password" name="password" placeholder="Contraseña" required style="margin:6px 0;padding:8px;width:100%;">
+    <input type="password" name="confirm" placeholder="Confirmar contraseña" required style="margin:6px 0;padding:8px;width:100%;">
+
+    <button type="submit" style="margin-top:10px;padding:10px 16px;background:#1e88e5;color:white;border:none;border-radius:6px;cursor:pointer;width:100%;">Registrarse</button>
+
+    {% if error %}
+      <p style="color:red;">{{ error }}</p>
+    {% endif %}
+
+    <p>¿Ya tienes cuenta? <a href="{% url 'login' %}" style="color:#1e88e5;">Inicia sesión</a></p>
+  </form>
+
+</div>
+{% endblock %}

@@ -1,0 +1,17 @@
+{% extends "interfaz/base.html" %}
+
+{% block title %}Login{% endblock %}
+
+{% block content %}
+  <div style="display:flex;align-items:center;justify-content:center;height:100vh;font-family:Arial">
+    <form method="POST" style="text-align:center;">
+      {% csrf_token %}
+      <h2>Iniciar sesión</h2>
+      <input type="text" name="username" placeholder="Usuario" required><br><br>
+      <input type="password" name="password" placeholder="Contraseña" required><br><br>
+      <button type="submit">Entrar</button><br>
+      <p>¿No tienes cuenta? <a href="{% url 'register' %}">Regístrate aquí</a></p>
+      {% if error %}<p style="color:red;">{{ error }}</p>{% endif %}
+    </form>
+  </div>
+{% endblock %}

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>{% block title %}Biotouch Web{% endblock %}</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: Arial, sans-serif;
+    }
+    .logo {
+      position: absolute;
+      top: 5px;
+      right: 20px;
+      width: 200px;
+    }
+  </style>
+  {% block extra_head %}{% endblock %}
+</head>
+<body>
+
+  <!-- Logo común -->
+  <img src="https://www.4gune.eus/sites/default/files/2021-07/UD-ingenieria_1.png"
+       alt="Logo" class="logo">
+
+  {% block content %}{% endblock %}
+
+</body>
+</html>

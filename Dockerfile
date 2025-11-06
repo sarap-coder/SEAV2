@@ -24,7 +24,9 @@ RUN pip install catkin_tools \
                 tensorboard \
                 opencv-python \
                 ultralytics \
-                django
+                django \
+                pytesseract \
+                bleak
                 
 RUN rm -rf /var/lib/apt/lists/* && \
     groupadd -g 1000 tiago && \

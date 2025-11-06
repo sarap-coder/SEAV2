@@ -7,6 +7,7 @@ import rospy
 import cv2
 import os
 import cv2
+from django.contrib.auth.models import User
 from django.http import StreamingHttpResponse, FileResponse, HttpResponseNotFound
 from django.views.decorators.clickjacking import xframe_options_exempt
 from std_msgs.msg import String
@@ -15,6 +16,16 @@ import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
+from django.contrib.auth.decorators import login_required
+from django.contrib.auth import authenticate, login, logout
+from django.shortcuts import render, redirect
+from .models import AnalisisMedico
+
+
+@login_required
+def analisis(request):
+    obj, created = AnalisisMedico.objects.get_or_create(user=request.user)
+    return render(request, 'interfaz/analisis.html', {"analisis": obj})
 
 
 last_pulse = "Sin datos"
@@ -50,6 +61,7 @@ POSE_IMG_PATH = "/tmp/tiago_pose_latest.jpg"
 def home(request):
     return render(request, 'interfaz/home.html')
 
+
 def analisis(request):
     """
     Pantalla dividida en 4. Primer bloque: Análisis de postura.
@@ -76,10 +88,11 @@ def iniciar_evaluacion_reflejos(request):
     return redirect('analisis_reflejos_live')
 
 def analisis_pulso_live(request):
-    """
-    Vista para ejecutar el análisis de pulso SIN mostrar cámara.
-    """
+    obj, _ = AnalisisMedico.objects.get_or_create(user=request.user)
+    obj.completado_pulso = True
+    obj.save()
     return render(request, 'interfaz/analisis_pulso_live.html')
+
 
 def iniciar_pulso(request):
     launch_cmd = _ros_env_cmd("nohup rosrun clinical_exploration pulse_node.py >/tmp/pulse_node.log 2>&1 &")
@@ -88,16 +101,23 @@ def iniciar_pulso(request):
 
 
 def analisis_reflejos_live(request):
-    """
-    Vista para ejecutar el test de reflejos SIN mostrar cámara.
-    """
+    obj, _ = AnalisisMedico.objects.get_or_create(user=request.user)
+    obj.completado_reflejos = True
+    obj.save()
     return render(request, 'interfaz/analisis_reflejos_live.html')
+
+@login_required
+def analisis_otros(request):
+    obj, _ = AnalisisMedico.objects.get_or_create(user=request.user)
+    obj.completado_otros = True
+    obj.save()
+    return redirect('analisis')
 
 
 def analisis_postura_live(request):
-    """
-    Vista dedicada solo a la cámara (fondo oscuro, tamaño medio).
-    """
+    obj, _ = AnalisisMedico.objects.get_or_create(user=request.user)
+    obj.completado_postura = True
+    obj.save()
     return render(request, 'interfaz/analisis_postura_live.html')
 
 
@@ -132,3 +152,53 @@ def video_feed(request):
         return FileResponse(open(POSE_IMG_PATH, 'rb'), content_type='image/jpeg')
     except Exception:
         return HttpResponseNotFound("No se pudo leer la imagen.")
+    
+
+@login_required
+def analisis_final(request):
+    return render(request, 'interfaz/analisis_final.html')
+
+def salir(request):
+    logout(request)
+    return redirect('login')
+
+
+def login_view(request):
+    # ✅ Crear usuario automático si no existen usuarios
+    if User.objects.count() == 0:
+        User.objects.create_superuser(
+            username="sara",
+            email="",
+            password="sara"
+        )
+        print("✅ Usuario automático creado: admin / admin")
+
+    if request.method == "POST":
+        user = authenticate(
+            request,
+            username=request.POST["username"],
+            password=request.POST["password"],
+        )
+        if user:
+            login(request, user)
+            return redirect('analisis')
+        return render(request, "interfaz/login.html", {"error": "Credenciales inválidas"})
+
+    return render(request, "interfaz/login.html")
+
+def register_view(request):
+    if request.method == "POST":
+        username = request.POST.get("username")
+        password = request.POST.get("password")
+        confirm = request.POST.get("confirm")
+
+        if password != confirm:
+            return render(request, "interfaz/register.html", {"error": "Las contraseñas no coinciden"})
+
+        if User.objects.filter(username=username).exists():
+            return render(request, "interfaz/register.html", {"error": "Ese usuario ya existe"})
+
+        User.objects.create_user(username=username, password=password)
+        return redirect("login")
+
+    return render(request, "interfaz/register.html")

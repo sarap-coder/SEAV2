@@ -1,89 +1,114 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <title>Análisis</title>
-  <style>
-    body{margin:0;font-family:Arial,Helvetica,sans-serif}
-    .grid{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 50vh 50vh;
-      height:100vh;
-    }
-    .cell{
-      border:1px solid #ddd;
-      padding:16px;
-      box-sizing:border-box;
-      display:flex;
-      flex-direction:column;
-      gap:12px;
-    }
-    .cell h2{margin:0 0 8px 0}
-    .actions{display:flex;gap:8px;flex-wrap:wrap}
-    .btn{
-      padding:10px 16px;
-      border:none;
-      cursor:pointer;
-      font-size:14px;
-      border-radius:6px;
-    }
-    .btn-primary{background:#1e88e5;color:white}
-    .muted{color:#666}
-    #pose-container{
-      flex:1; display:flex; justify-content:center; align-items:center; overflow:hidden; border:1px dashed #bbb; border-radius:8px; padding:4px;
-    }
-    #pose-img{max-width:100%; max-height:100%; object-fit:contain;}
-  </style>
-</head>
-<body>
-  <div class="grid">
-    <!-- Bloque 1: Análisis de postura -->
-    <div class="cell">
-        <h2>Análisis de postura</h2>
-        <div class="actions">
-            <a class="btn btn-primary" href="{% url 'analisis_postura_live' %}">Iniciar</a>
-        </div>
-        <p class="muted">Listo para comenzar.</p>
-    </div>
+{% extends "interfaz/base.html" %}
 
+{% block title %}Análisis{% endblock %}
 
-    <!-- Bloque 2 -->
-    <div class="cell">
-        <h2>Evaluación de reflejos</h2>
-        <div class="actions">
-            <a class="btn btn-primary" href="{% url 'analisis_reflejos_live' %}">Iniciar</a>
-        </div>
-        <p class="muted">Listo para comenzar.</p>
-    </div>
+{% block extra_head %}
+<style>
+  body{margin:0;font-family:Arial,Helvetica,sans-serif}
+  .grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: 50vh 50vh;
+    height:100vh;
+    margin-top: 110px;
+  }
+  .cell{
+    border:1px solid #ddd;
+    padding:16px;
+    box-sizing:border-box;
+    display:flex;
+    flex-direction:column;
+    gap:12px;
+  }
+  .cell h2{margin:0 0 8px 0}
+  .actions{display:flex;gap:8px;flex-wrap:wrap}
+  .btn{
+    padding:10px 16px;
+    border:none;
+    cursor:pointer;
+    font-size:14px;
+    border-radius:6px;
+  }
+  .btn-primary{background:#1e88e5;color:white}
+  .muted{color:#666}
+</style>
+{% endblock %}
 
+{% block content %}
+<!-- Botón HOME (solo aquí) -->
+<button onclick="window.location.href='{% url 'login' %}'"
+        style="position:absolute;top:40px;left:20px;
+               padding:8px 14px;background:#1e88e5;color:white;
+               border:none;border-radius:6px;cursor:pointer;">
+  Home
+</button>
 
-    <!-- Bloque 3 -->
-    <div class="cell">
-      <h2>Análisis del pulso</h2>
-      <div class="actions">
-        <a class="btn btn-primary" href="{% url 'analisis_pulso_live' %}">Iniciar</a>
-      </div>
-      <p class="muted">Listo para comenzar.</p>
-    </div>
+<div class="grid">
 
-
-    <!-- Bloque 4 -->
-    <div class="cell">
-      <h2>Próximamente…</h2>
-      <p class="muted">Contenido en desarrollo.</p>
-    </div>
+  <!-- Bloque 1: Postura -->
+  {% if analisis.completado_postura %}
+  <div class="cell" style="background:#d3d3d3;">
+    <h2>Análisis de postura ✅</h2>
+    <p class="muted">Completado.</p>
   </div>
+  {% else %}
+  <div class="cell">
+    <h2>Análisis de postura</h2>
+    <div class="actions">
+      <a class="btn btn-primary" href="{% url 'analisis_postura_live' %}">Iniciar</a>
+    </div>
+    <p class="muted">Listo para comenzar.</p>
+  </div>
+  {% endif %}
 
-  <script>
-    // Refresco cada 1s para evitar cache
-    const img = document.getElementById('pose-img');
-    function tick(){
-      const base = "{% url 'video_feed' %}";
-      img.src = base + "?t=" + Date.now();
-      img.style.display = 'block';
-    }
-    setInterval(tick, 1000);
-  </script>
-</body>
-</html>
+  <!-- Bloque 2: Reflejos -->
+  {% if analisis.completado_reflejos %}
+  <div class="cell" style="background:#d3d3d3;">
+    <h2>Evaluación de reflejos ✅</h2>
+    <p class="muted">Completado.</p>
+  </div>
+  {% else %}
+  <div class="cell">
+    <h2>Evaluación de reflejos</h2>
+    <div class="actions">
+      <a class="btn btn-primary" href="{% url 'analisis_reflejos_live' %}">Iniciar</a>
+    </div>
+    <p class="muted">Listo para comenzar.</p>
+  </div>
+  {% endif %}
+
+  <!-- Bloque 3: Pulso -->
+  {% if analisis.completado_pulso %}
+  <div class="cell" style="background:#d3d3d3;">
+    <h2>Análisis del pulso ✅</h2>
+    <p class="muted">Completado.</p>
+  </div>
+  {% else %}
+  <div class="cell">
+    <h2>Análisis del pulso</h2>
+    <div class="actions">
+      <a class="btn btn-primary" href="{% url 'analisis_pulso_live' %}">Iniciar</a>
+    </div>
+    <p class="muted">Listo para comenzar.</p>
+  </div>
+  {% endif %}
+
+  <!-- Bloque 4: Exploración final -->
+  {% if analisis.completado_otros %}
+  <div class="cell" style="background:#d3d3d3;">
+    <h2>Exploración final ✅</h2>
+    <p class="muted">Completado.</p>
+  </div>
+  {% else %}
+  <div class="cell">
+    <h2>Exploración final</h2>
+    <div class="actions">
+      <a class="btn btn-primary" href="{% url 'analisis_otros' %}">Iniciar</a>
+    </div>
+    <p class="muted">Listo para comenzar.</p>
+  </div>
+  {% endif %}
+
+</div>
+
+{% endblock %}
