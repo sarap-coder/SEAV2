@@ -20,6 +20,33 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
 from .models import AnalisisMedico
+from django.http import HttpResponse, FileResponse, HttpResponseNotFound
+
+ultimo_resultado_reflejos = "Sin evaluar"
+reflejos_subscriber_initialized = False
+
+def reflejos_callback(msg):
+    global ultimo_resultado_reflejos
+    ultimo_resultado_reflejos = msg.data
+
+def init_reflejos_listener():
+    global reflejos_subscriber_initialized
+    if reflejos_subscriber_initialized:
+        return
+    reflejos_subscriber_initialized = True
+
+    def listener():
+        rospy.Subscriber("/reflejos_resultado", String, reflejos_callback)
+        while True:
+            rospy.sleep(0.1)
+
+    threading.Thread(target=listener, daemon=True).start()
+
+
+    threading.Thread(target=listener, daemon=True).start()
+def reflejos_feed(request):
+    init_reflejos_listener()
+    return JsonResponse({"resultado": ultimo_resultado_reflejos})
 
 
 @login_required
@@ -122,37 +149,32 @@ def analisis_postura_live(request):
 
 
 def _is_pose_node_running():
-    # Revisa si ya hay un rosrun de ese script/nodo
-    try:
-        out = subprocess.check_output(["bash", "-lc", "pgrep -af 'rosrun tiago_pose detectar_pose\\.py' || true"])
-        return bool(out.strip())
-    except Exception:
-        return False
+    nodes = subprocess.getoutput("rosnode list")
+    return "/tiago_pose_estimation" in nodes
+
 def iniciar_postura(request):
     """
     Lanza el nodo de postura con rosrun en background (si no está ya corriendo).
     """
     if not _is_pose_node_running():
-        launch_cmd = _ros_env_cmd("nohup rosrun tiago_pose detectar_pose.py >/tmp/tiago_pose.log 2>&1 &")
-        subprocess.Popen(launch_cmd, shell=True)
+        cmd = _ros_env_cmd(
+            "nohup rosrun tiago_pose detectar_pose.py >/tmp/tiago_pose.log 2>&1 &"
+        )
+        subprocess.Popen(cmd, shell=True)
 
-    # Redirige a la pantalla de análisis
     return redirect('analisis')
 
 @xframe_options_exempt
 def video_feed(request):
-    """
-    Sirve el último frame anotado como image/jpeg.
-    El <img> del front añade ?t=timestamp para evitar cache.
-    """
-    if not os.path.exists(POSE_IMG_PATH):
-        return HttpResponseNotFound("Aún no hay imagen. ¿Iniciaste el análisis de postura?")
+    if not os.path.exists("/tmp/tiago_pose_latest.jpg"):
+        return HttpResponseNotFound("Aún no hay imagen procesada")
     try:
-        # Devuelve el archivo como imagen
-        return FileResponse(open(POSE_IMG_PATH, 'rb'), content_type='image/jpeg')
-    except Exception:
-        return HttpResponseNotFound("No se pudo leer la imagen.")
-    
+        with open("/tmp/tiago_pose_latest.jpg", "rb") as f:
+            data = f.read()
+        return HttpResponse(data, content_type="image/jpeg")
+    except:
+        return HttpResponseNotFound("No se pudo leer la imagen")
+
 
 @login_required
 def analisis_final(request):

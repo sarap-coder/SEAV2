@@ -10,10 +10,13 @@ from control_msgs.msg import FollowJointTrajectoryAction, FollowJointTrajectoryG
 from trajectory_msgs.msg import JointTrajectoryPoint
 from cv_bridge import CvBridge
 from ultralytics import YOLO
+from std_msgs.msg import String
 
 class MoverBrazoYOLOCam:
     def __init__(self):
         rospy.init_node("mover_brazo_yolo_cam")
+        self.result_pub = rospy.Publisher("/reflejos_resultado", String, queue_size=1)
+
 
         self.arm_joint_names = [
             "arm_1_joint", "arm_2_joint", "arm_3_joint",
@@ -61,9 +64,11 @@ class MoverBrazoYOLOCam:
         self.arm_client.send_goal(goal)
         self.arm_client.wait_for_result(rospy.Duration(6.0))
 
+    
     def detectar_mouse(self):
-        rospy.loginfo("🎯 MOSTRANDO CÁMARA Y DETECTANDO")
-        t_end = time.time() + 1.2
+        rospy.loginfo("🎯 MOSTRANDO CÁMARA Y DETECTANDO OBJETO")
+        t_end = time.time() + 1.5
+        objeto_detectado = False
 
         while time.time() < t_end and not rospy.is_shutdown():
             if self.last_frame is None:
@@ -74,18 +79,33 @@ class MoverBrazoYOLOCam:
             cv2.imshow("CAMARA TIAGO", frame)
             cv2.waitKey(1)
 
-            results = self.yolo(frame, verbose=False)
+            results = self.yolo.predict(frame, verbose=False)
+
+            # comprobar detección
             for r in results:
                 for b in r.boxes:
-                    if r.names[int(b.cls[0])] == "cell phone":
-                        cv2.destroyAllWindows()
-                        rospy.loginfo("✅ DETECTADO")
-                        return
+                    cls_id = int(b.cls[0])
+                    class_name = r.names[cls_id]
 
-            rospy.sleep(0.1)
+                    if class_name == "cell phone":
+                        objeto_detectado = True
+                        break
+
+            if objeto_detectado:
+                break
+
+            rospy.sleep(0.05)
 
         cv2.destroyAllWindows()
-        rospy.loginfo("❌ NO DETECTADO")
+
+        if objeto_detectado:
+            rospy.loginfo("✅ Objeto detectado")
+            self.result_pub.publish("Objeto detectado")
+        else:
+            rospy.loginfo("❌ Objeto no detectado")
+            self.result_pub.publish("Objeto no detectado")
+
+
 
     def run(self):
         self.mover_gripper(0.008)
