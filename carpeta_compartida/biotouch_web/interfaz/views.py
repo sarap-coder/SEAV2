@@ -20,6 +20,7 @@ from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
 from django.shortcuts import render, redirect
 from .models import AnalisisMedico
+from std_msgs.msg import Int32
 from django.http import HttpResponse, FileResponse, HttpResponseNotFound
 
 ultimo_resultado_reflejos = "Sin evaluar"
@@ -58,17 +59,42 @@ def analisis(request):
 last_pulse = "Sin datos"
 pulse_subscriber_initialized = False
 
+
+import rospy
+
+ros_initialized = False
+
+def init_ros_once():
+    global ros_initialized
+    if ros_initialized:
+        return
+
+    try:
+        rospy.init_node("django_bridge", anonymous=True, disable_signals=True)
+        ros_initialized = True
+        print("✅ ROS inicializado desde Django")
+    except rospy.exceptions.ROSException:
+        # Si el nodo ya existe, no pasa nada
+        pass
+
+
+
 def init_pulse_listener():
     global pulse_subscriber_initialized
     if pulse_subscriber_initialized:
         return
+
     pulse_subscriber_initialized = True
 
+    # Inicializar ROS (solo la primera vez)
+    init_ros_once()
+
     def listener():
-        rospy.Subscriber("/pulse_rate", String, pulse_callback)
+        rospy.Subscriber("/pulse_rate", Int32, pulse_callback)
         rospy.spin()
 
     threading.Thread(target=listener, daemon=True).start()
+
 
 
 from django.http import JsonResponse
@@ -80,7 +106,8 @@ def pulse_feed(request):
 
 def pulse_callback(msg):
     global last_pulse
-    last_pulse = msg.data
+    last_pulse = str(msg.data)  # Convertimos a string para enviar por JSON
+
 
 # Ruta donde el nodo ROS deja la imagen
 POSE_IMG_PATH = "/tmp/tiago_pose_latest.jpg"
