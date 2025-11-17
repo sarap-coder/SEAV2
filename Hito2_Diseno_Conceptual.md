@@ -195,7 +195,7 @@ El proyecto utilizará **un único contenedor Docker** que integra el entorno ne
   - Integración de la cámara térmica al entorno
 
 - **Ander:**  
-  - BLE del pulsómetro  
+  - Lectura de datos del pulsómetro  
   - Tratamiento de datos del pulsómetro
   - Preparación del modulos de control en la Raspberry Pi
 
