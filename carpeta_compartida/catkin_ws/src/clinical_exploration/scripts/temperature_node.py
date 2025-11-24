@@ -228,6 +228,7 @@ class TemperatureNode:
         self.temp_pub.publish(temp_msg)
         
         if simulated:
+            pass
         elif is_media:
             rospy.loginfo(f"📊 [LOTE {numero_lote}] TEMPERATURA MEDIA PUBLICADA: {temperatura:.2f}°C")
         elif is_individual:
