@@ -66,8 +66,8 @@ class TemperatureNode:
         self.archivos_vistos = set()
 
         # 🔥 MODIFICADO: Variables para calcular la media por lotes independientes
-        self.temperaturas_lote_actual = []  # Solo las 10 temperaturas actuales
-        self.contador_fotos = 0  # Contador de fotos procesadas en el lote actual
+        self.temperaturas_lote_actual = []  # Solo las temperaturas exitosas del lote actual
+        self.contador_imagenes_procesadas = 0  # Contador de TODAS las imágenes procesadas
         self.numero_lote = 1  # Número del lote actual
         
         # Asegurar que la carpeta existe
@@ -83,7 +83,7 @@ class TemperatureNode:
         # Iniciar monitoreo
         self.observer.start()
         rospy.loginfo("🔍 Monitoreo de carpeta activado - Esperando nuevas imágenes...")
-        rospy.loginfo("📊 Modo media por lotes: cada 10 fotos → media independiente")
+        rospy.loginfo("📊 Modo media por lotes: cada 10 imágenes procesadas → media independiente")
         
         # Procesar imágenes existentes al inicio
         self.process_existing_images()
@@ -108,26 +108,30 @@ class TemperatureNode:
             self.process_existing_images()
     
     def calcular_media_lote(self):
-        """Calcula y publica la media del lote actual de 10 fotos"""
+        """Calcula y publica la media del lote actual de 10 imágenes"""
         if len(self.temperaturas_lote_actual) == 0:
-            rospy.logwarn("📭 No hay temperaturas en el lote actual para calcular la media")
-            return
+            rospy.logwarn("📭 No hay temperaturas válidas en el lote actual para calcular la media")
+            # Publicar temperatura simulada si no hay lecturas válidas
+            self.publish_temperature(36.5, simulated=True, is_media=True, numero_lote=self.numero_lote)
+        else:
+            media_lote = sum(self.temperaturas_lote_actual) / len(self.temperaturas_lote_actual)
             
-        media_lote = sum(self.temperaturas_lote_actual) / len(self.temperaturas_lote_actual)
-        
-        rospy.loginfo("=" * 60)
-        rospy.loginfo(f"📊 LOTES {self.numero_lote} - RESUMEN DE {len(self.temperaturas_lote_actual)} FOTOS:")
-        rospy.loginfo(f"📈 Temperaturas individuales: {self.temperaturas_lote_actual}")
-        rospy.loginfo(f"🧮 Media del lote: {media_lote:.2f}°C")
-        rospy.loginfo(f"🔢 Rango: {min(self.temperaturas_lote_actual):.1f}°C - {max(self.temperaturas_lote_actual):.1f}°C")
-        rospy.loginfo("=" * 60)
-        
-        # Publicar la media del lote
-        self.publish_temperature(media_lote, is_media=True, numero_lote=self.numero_lote)
+            rospy.loginfo("=" * 60)
+            rospy.loginfo(f"📊 LOTE {self.numero_lote} - RESUMEN:")
+            rospy.loginfo(f"📈 Imágenes procesadas: {10}")
+            rospy.loginfo(f"✅ Lecturas exitosas: {len(self.temperaturas_lote_actual)}")
+            rospy.loginfo(f"🌡️ Temperaturas válidas: {self.temperaturas_lote_actual}")
+            rospy.loginfo(f"🧮 Media del lote: {media_lote:.2f}°C")
+            if len(self.temperaturas_lote_actual) > 1:
+                rospy.loginfo(f"🔢 Rango: {min(self.temperaturas_lote_actual):.1f}°C - {max(self.temperaturas_lote_actual):.1f}°C")
+            rospy.loginfo("=" * 60)
+            
+            # Publicar la media del lote
+            self.publish_temperature(media_lote, is_media=True, numero_lote=self.numero_lote)
         
         # 🔥 MODIFICADO: Reiniciar para el siguiente lote
         self.temperaturas_lote_actual = []  # Limpiar el lote actual
-        self.contador_fotos = 0  # Reiniciar contador
+        self.contador_imagenes_procesadas = 0  # Reiniciar contador
         self.numero_lote += 1  # Incrementar número de lote
         
         rospy.loginfo(f"🔄 Lote {self.numero_lote-1} completado. Iniciando lote {self.numero_lote}...")
@@ -139,10 +143,10 @@ class TemperatureNode:
         
         rospy.loginfo(f"🔄 Iniciando procesamiento de: {filename}")
         
-        if filename in self.archivos_vistos:
-            rospy.loginfo(f"⏭️ Imagen ya procesada: {filename}")
-            return
-            
+        # 🔥 MODIFICADO: Incrementar contador de imágenes procesadas (siempre)
+        self.contador_imagenes_procesadas += 1
+        rospy.loginfo(f"📊 Imágenes procesadas totales: {self.contador_imagenes_procesadas}")
+        
         img = cv2.imread(image_path)
         if img is not None:
             try:
@@ -175,28 +179,26 @@ class TemperatureNode:
                     val_temp = int(digitos[0])*10 + int(digitos[1]) + int(digitos[2])*0.1
                     rospy.loginfo(f"🔢 Dígitos detectados: {digitos}, Temperatura: {val_temp}°C")
                     
-                    # 🔥 MODIFICADO: Guardar en el lote actual y verificar si es hora de calcular media
+                    # 🔥 MODIFICADO: Guardar en el lote actual solo si es exitosa
                     self.temperaturas_lote_actual.append(val_temp)
-                    self.contador_fotos += 1
                     
                     # Publicar temperatura individual
                     self.publish_temperature(val_temp, is_individual=True)
                     
-                    # Verificar si hemos llegado a 10 fotos en el lote actual
-                    if self.contador_fotos == 10:
-                        rospy.loginfo(f"🎯 Lote {self.numero_lote} completado ({self.contador_fotos} fotos) - Calculando media...")
-                        self.calcular_media_lote()
-                    else:
-                        rospy.loginfo(f"📈 Progreso lote {self.numero_lote}: {self.contador_fotos}/10 fotos")
-                    
                 else:
                     rospy.logwarn(f"❌ No se pudieron detectar dígitos. Texto: '{texto}'")
-                    # Publicar temperatura simulada para esta imagen
-                    self.publish_temperature(36.5, simulated=True)
+                    # No se añade a temperaturas_lote_actual, pero igual cuenta como imagen procesada
                     
             except Exception as e:
                 rospy.logerr(f"❌ Error procesando imagen {filename}: {e}")
-                self.publish_temperature(36.5, simulated=True)
+                # No se añade a temperaturas_lote_actual, pero igual cuenta como imagen procesada
+            
+            # 🔥 MODIFICADO: Verificar si hemos llegado a 10 imágenes procesadas (exitosas o no)
+            if self.contador_imagenes_procesadas >= 10:
+                rospy.loginfo(f"🎯 Lote {self.numero_lote} completado ({self.contador_imagenes_procesadas} imágenes procesadas) - Calculando media...")
+                self.calcular_media_lote()
+            else:
+                rospy.loginfo(f"📈 Progreso lote {self.numero_lote}: {self.contador_imagenes_procesadas}/10 imágenes procesadas")
             
             # Marcar como procesado
             self.archivos_vistos.add(filename)
@@ -213,6 +215,11 @@ class TemperatureNode:
         else:
             rospy.logwarn(f"❌ No se pudo leer la imagen: {filename}")
             self.archivos_vistos.add(filename)  # Marcar igual para no reintentar
+            
+            # 🔥 MODIFICADO: Verificar también en caso de error de lectura
+            if self.contador_imagenes_procesadas >= 10:
+                rospy.loginfo(f"🎯 Lote {self.numero_lote} completado ({self.contador_imagenes_procesadas} imágenes procesadas) - Calculando media...")
+                self.calcular_media_lote()
     
     def publish_temperature(self, temperatura, simulated=False, is_individual=False, is_media=False, numero_lote=1):
         """Publica la temperatura en ROS"""
@@ -221,22 +228,25 @@ class TemperatureNode:
         self.temp_pub.publish(temp_msg)
         
         if simulated:
-            rospy.loginfo(f"🌡️ Temperatura simulada publicada: {temperatura}°C")
         elif is_media:
             rospy.loginfo(f"📊 [LOTE {numero_lote}] TEMPERATURA MEDIA PUBLICADA: {temperatura:.2f}°C")
         elif is_individual:
             rospy.loginfo(f"✅ Temperatura individual publicada: {temperatura}°C")
         else:
             rospy.loginfo(f"✅ Temperatura publicada: {temperatura}°C")
-    
+   
     def shutdown(self):
         """Cierra el observer correctamente"""
-        # 🔥 MODIFICADO: Calcular media final del lote actual si hay temperaturas pendientes
-        if self.temperaturas_lote_actual and len(self.temperaturas_lote_actual) > 0:
-            rospy.loginfo(f"🔚 Calculando media final del lote {self.numero_lote} con {len(self.temperaturas_lote_actual)} temperaturas...")
-            media_final = sum(self.temperaturas_lote_actual) / len(self.temperaturas_lote_actual)
-            rospy.loginfo(f"📊 MEDIA FINAL LOTE {self.numero_lote}: {media_final:.2f}°C (con {len(self.temperaturas_lote_actual)} fotos)")
-            self.publish_temperature(media_final, is_media=True, numero_lote=self.numero_lote)
+        # 🔥 MODIFICADO: Calcular media final del lote actual si hay imágenes procesadas
+        if self.contador_imagenes_procesadas > 0:
+            rospy.loginfo(f"🔚 Calculando media final del lote {self.numero_lote} con {self.contador_imagenes_procesadas} imágenes procesadas...")
+            if self.temperaturas_lote_actual:
+                media_final = sum(self.temperaturas_lote_actual) / len(self.temperaturas_lote_actual)
+                rospy.loginfo(f"📊 MEDIA FINAL LOTE {self.numero_lote}: {media_final:.2f}°C (con {len(self.temperaturas_lote_actual)} lecturas válidas de {self.contador_imagenes_procesadas} imágenes)")
+                self.publish_temperature(media_final, is_media=True, numero_lote=self.numero_lote)
+            else:
+                rospy.logwarn(f"📭 Lote {self.numero_lote} sin lecturas válidas de {self.contador_imagenes_procesadas} imágenes procesadas")
+                
             
         self.observer.stop()
         self.observer.join()
@@ -245,7 +255,7 @@ if __name__ == '__main__':
     node = TemperatureNode()
     try:
         rospy.loginfo("🚀 Nodo temperatura iniciado - Watchdog activo")
-        rospy.loginfo("📊 Modo lotes independientes: cada 10 fotos → media independiente")
+        rospy.loginfo("📊 Modo lotes independientes: cada 10 imágenes procesadas → media independiente")
         rospy.spin()
     except KeyboardInterrupt:
         rospy.loginfo("⏹️ Interrupción por teclado")

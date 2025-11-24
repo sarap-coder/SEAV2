@@ -1,0 +1,77 @@
+<!-- templates/interfaz/analisis_temperatura_live.html -->
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Análisis de Temperatura</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            text-align: center; 
+            padding: 50px; 
+            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
+            color: white;
+            height: 100vh;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+        }
+        .temperature-display {
+            font-size: 4em;
+            font-weight: bold;
+            margin: 20px 0;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        .status {
+            font-size: 1.5em;
+            margin: 20px 0;
+        }
+        .back-button {
+            background: white;
+            color: #ff7e5f;
+            border: none;
+            padding: 15px 30px;
+            font-size: 1.2em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin-top: 30px;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .progress {
+            font-size: 1.2em;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🌡️ Monitoreo de Temperatura</h1>
+    <div class="status" id="status">Conectando...</div>
+    <div class="temperature-display" id="temperature">--°C</div>
+    <div class="progress" id="progress"></div>
+    
+    <a href="{% url 'analisis' %}" class="back-button">Volver al Análisis</a>
+
+    <script>
+        function updateTemperature() {
+            fetch('/temperature_feed/')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('temperature').textContent = data.temperature;
+                    document.getElementById('status').textContent = 'Temperatura en tiempo real';
+                    document.getElementById('progress').textContent = 'Media calculada cada 10 imágenes';
+                })
+                .catch(error => {
+                    document.getElementById('status').textContent = 'Error conectando al servidor';
+                    console.error('Error:', error);
+                });
+        }
+
+        // Actualizar cada 2 segundos
+        setInterval(updateTemperature, 2000);
+        
+        // Primera actualización inmediata
+        updateTemperature();
+    </script>
+</body>
+</html>
