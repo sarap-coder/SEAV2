@@ -1,27 +1,20 @@
 import subprocess
-from django.http import FileResponse, HttpResponseNotFound
 from django.shortcuts import render, redirect
-from django.views.decorators.clickjacking import xframe_options_exempt
 import os
 import rospy
-import cv2
-import os
-import cv2
 from django.contrib.auth.models import User
 from django.http import StreamingHttpResponse, FileResponse, HttpResponseNotFound
 from django.views.decorators.clickjacking import xframe_options_exempt
 from std_msgs.msg import String
 import threading
-import rospy
 from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
-import cv2
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
-from django.shortcuts import render, redirect
 from .models import AnalisisMedico
 from std_msgs.msg import Int32
 from django.http import HttpResponse, FileResponse, HttpResponseNotFound
+from django.http import JsonResponse
 
 ultimo_resultado_reflejos = "Sin evaluar"
 reflejos_subscriber_initialized = False
@@ -36,15 +29,15 @@ def init_reflejos_listener():
         return
     reflejos_subscriber_initialized = True
 
+    # 🔧 Inicializar ROS solo una vez
+    init_ros_once()
+
     def listener():
         rospy.Subscriber("/reflejos_resultado", String, reflejos_callback)
-        while True:
-            rospy.sleep(0.1)
+        rospy.spin()  # mantenemos el hilo vivo escuchando
 
     threading.Thread(target=listener, daemon=True).start()
 
-
-    threading.Thread(target=listener, daemon=True).start()
 def reflejos_feed(request):
     init_reflejos_listener()
     return JsonResponse({"resultado": ultimo_resultado_reflejos})
@@ -59,8 +52,6 @@ def analisis(request):
 last_pulse = "Sin datos"
 pulse_subscriber_initialized = False
 
-
-import rospy
 
 ros_initialized = False
 
@@ -97,8 +88,6 @@ def init_pulse_listener():
 
 
 
-from django.http import JsonResponse
-
 def pulse_feed(request):
     init_pulse_listener()
     return JsonResponse({"data": last_pulse})
@@ -115,14 +104,6 @@ POSE_IMG_PATH = "/tmp/tiago_pose_latest.jpg"
 def home(request):
     return render(request, 'interfaz/home.html')
 
-
-def analisis(request):
-    """
-    Pantalla dividida en 4. Primer bloque: Análisis de postura.
-    Botón para iniciar el nodo y <img> que se refresca cada 1s.
-    Los otros 3 bloques: 'Próximamente...'
-    """
-    return render(request, 'interfaz/analisis.html')
 
 def _ros_env_cmd(cmd):
     return f"""

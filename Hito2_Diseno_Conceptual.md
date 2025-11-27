@@ -56,7 +56,7 @@ Además, el sistema guía al usuario mediante una **interfaz web desarrollada en
 
 | Componente | Descripción | Comunicación |
 |-----------|-------------|--------------|
-| **Robot TIAGo** | Base móvil + brazo de 7 DOF + pinza paralela | ROS 1 TCPROS |
+| **Robot TIAGo** | Base móvil + brazo de 7 DOF + pinza paralela | ROS 1  |
 | **Sensor térmico tipo pistola** | Temperatura puntual (frente/muñeca) | USB / SD |
 | **RGB-D (Asus Xtion)** | Nube de puntos + imagen para postura | /xtion/* topics |
 | **Pulsómetro Bluetooth** | Frecuencia cardíaca | BLE nodo ROS |
@@ -68,7 +68,7 @@ Además, el sistema guía al usuario mediante una **interfaz web desarrollada en
 
 El sistema guía al paciente paso a paso:
 
-1. **Bienvenida** → Introducción y comprobación de conexión.
+1. **Bienvenida** → Introducción.
 2. **Inicio de sesión** → Inicio de sesión para guardar datos por paciente.
 2. **Postura** → La cámara RGB-D analiza la alineación del torso.  
 3. **Temperatura** → El sistema muestra instrucciones para usar la cámara térmica.  
@@ -93,21 +93,21 @@ El sistema guía al paciente paso a paso:
 
 **Nodos principales:**
 
-- `/biotouch_temp_reader` → Procesa lectura de sensor térmico.  #################################################
-- `/biotouch_pose_estimator` → Analiza postura desde RGB-D.  
-- `/biotouch_ble_hr` → Pulso desde pulsómetro Bluetooth.  
-- `/biotouch_bridge` → Comunicación ROS ↔ Django.
+- `/temperature_node` → Procesa lectura de sensor térmico. 
+- `/tiago_pose_estimation` → Analiza postura desde RGB-D.  
+- `/pulse_node` → Pulso desde pulsómetro Bluetooth.  
+- `/django_bridge` → Comunicación ROS ↔ Django.
 
 **Topics:**
 
 | Topic | Tipo | Función |
 |-------|------|---------|
-| `/gripper_controller/state` | JointTrajectoryControllerState | Estado del gripper |
-| `/biotouch/temp` | std_msgs/Float32 | Temperatura corporal |
-| `/biotouch/posture` | std_msgs/String | “Correcta/Incorrecta” |
-| `/biotouch/pulse` | std_msgs/Int32 | BPM |
-| `/biotouch/data` | custom_msgs/BioTouchData | Datos agregados |
+| `/temperature_result` | std_msgs/Float32 | Temperatura corporal |
+| `/posture` | std_msgs/String | “Correcta / Incorrecta” |
+| `/pulse_rate` | std_msgs/Int32 | BPM |
+| `/reflejos_resultado` | std_msgs/String | Reflejos correctos / Incorrectos |
 
+![alt text](image.png)
 ---
 
 ### 3.2 Estructura del repositorio
@@ -130,7 +130,7 @@ El sistema guía al paciente paso a paso:
 
 ### 3.3 Contenedores Docker y dependencias del entorno
 
-El proyecto utilizará **un único contenedor Docker** que integra el entorno necesario para la ejecución del sistema, con el objetivo de simplificar el despliegue, garantizar la reproducibilidad y asegurar que todos los miembros del equipo trabajan sobre la misma configuración.
+El proyecto utilizará un contenedor Docker que integra el entorno necesario para la ejecución del sistema, con el objetivo de simplificar el despliegue, garantizar la reproducibilidad y asegurar que todos los miembros del equipo trabajan sobre la misma configuración.
 
 **Contenido del contenedor único:**
 
@@ -201,4 +201,3 @@ El proyecto utilizará **un único contenedor Docker** que integra el entorno ne
 
 ---
 
-**Fin del documento**
