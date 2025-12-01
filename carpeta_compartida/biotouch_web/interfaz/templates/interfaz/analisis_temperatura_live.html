@@ -1,56 +1,71 @@
 <!-- templates/interfaz/analisis_temperatura_live.html -->
 <!DOCTYPE html>
-<html>
+<html lang="es">
 <head>
-    <title>Análisis de Temperatura</title>
+    <meta charset="UTF-8" />
+    <title>Monitoreo de Temperatura</title>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            padding: 50px; 
-            background: linear-gradient(135deg, #ff7e5f 0%, #feb47b 100%);
-            color: white;
-            height: 100vh;
+        body {
             margin: 0;
+            background-color: white;
+            color: black;
+            font-family: Arial, sans-serif;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            align-items: center;
+            height: 100vh;
         }
-        .temperature-display {
-            font-size: 4em;
-            font-weight: bold;
-            margin: 20px 0;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+
+        h1 {
+            margin-top: 20px;
+            text-align: center;
         }
+
         .status {
-            font-size: 1.5em;
-            margin: 20px 0;
-        }
-        .back-button {
-            background: white;
-            color: #ff7e5f;
-            border: none;
-            padding: 15px 30px;
-            font-size: 1.2em;
-            border-radius: 25px;
-            cursor: pointer;
             margin-top: 30px;
-            text-decoration: none;
-            display: inline-block;
+            font-size: 18px;
         }
+
+        .temperature-display {
+            margin-top: 20px;
+            font-size: 40px;
+            font-weight: bold;
+            color: #0077ff;
+        }
+
         .progress {
-            font-size: 1.2em;
-            margin: 10px 0;
+            margin-top: 15px;
+            font-size: 18px;
+        }
+
+        .volver {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            padding: 10px 16px;
+            background: #e0e0e0;
+            color: black;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
         }
     </style>
 </head>
+
 <body>
-    <h1>🌡️ Monitoreo de Temperatura</h1>
+
+    <h1>Monitoreo de temperatura</h1>
+
     <div class="status" id="status">Conectando...</div>
+
     <div class="temperature-display" id="temperature">--°C</div>
+
     <div class="progress" id="progress"></div>
-    
-    <a href="{% url 'analisis' %}" class="back-button">Volver al Análisis</a>
+
+    <button class="volver" onclick="window.location.href='{% url 'analisis' %}'">
+        Volver
+    </button>
 
     <script>
         function updateTemperature() {
@@ -59,7 +74,6 @@
                 .then(data => {
                     document.getElementById('temperature').textContent = data.temperature;
                     document.getElementById('status').textContent = 'Temperatura en tiempo real';
-                    document.getElementById('progress').textContent = 'Media calculada cada 10 imágenes';
                 })
                 .catch(error => {
                     document.getElementById('status').textContent = 'Error conectando al servidor';
@@ -69,9 +83,10 @@
 
         // Actualizar cada 2 segundos
         setInterval(updateTemperature, 2000);
-        
-        // Primera actualización inmediata
+
+        // Primera actualización
         updateTemperature();
     </script>
+
 </body>
 </html>

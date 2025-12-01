@@ -232,3 +232,99 @@ def register_view(request):
         return redirect("login")
 
     return render(request, "interfaz/register.html")
+
+
+
+class TemperatureBridge:
+    def __init__(self):
+        self.ultima_temperatura = "Sin datos"
+        self.initialized = False
+        self._lock = threading.Lock()
+
+    def start(self):
+        if self.initialized:
+            return
+
+        # Usar exactamente la misma inicialización ROS que los otros listeners
+        init_ros_once()
+
+        thread = threading.Thread(target=self._ros_listener, daemon=True)
+        thread.start()
+
+        self.initialized = True
+        print("🚀 Bridge de temperatura iniciado correctamente")
+
+    def _ros_listener(self):
+        import rospy
+        from std_msgs.msg import Float32
+
+        try:
+            def callback(msg):
+                with self._lock:
+                    self.ultima_temperatura = f"{msg.data:.2f}°C"
+
+            rospy.Subscriber("/temperature_result", Float32, callback)
+            print("🌡️ Suscrito a /temperature_result")
+
+            rospy.spin()
+
+        except Exception as e:
+            print(f"❌ Error en listener ROS: {e}")
+
+    def get_temperature(self):
+        with self._lock:
+            return self.ultima_temperatura
+
+# Instancia global
+temperature_bridge = TemperatureBridge()
+
+@login_required
+def temperature_feed(request):
+    temperature_bridge.start()
+    return JsonResponse({
+        "temperature": temperature_bridge.get_temperature(), 
+        "status": "success"
+    })
+    
+    
+@login_required  
+def iniciar_temperatura(request):
+    launch_cmd = _ros_env_cmd(
+        "nohup rosrun clinical_exploration temperature_node.py >/tmp/temperature_node.log 2>&1 &"
+    )
+    subprocess.Popen(launch_cmd, shell=True)
+
+    temperature_bridge.start()
+
+    return redirect('analisis_temperatura_live')
+
+
+@login_required
+def analisis_temperatura_live(request):
+    obj, _ = AnalisisMedico.objects.get_or_create(user=request.user)
+    obj.completado_temperatura = True
+    obj.save()
+    return render(request, 'interfaz/analisis_temperatura_live.html')
+
+
+@login_required
+def temperature_debug(request):
+    import subprocess
+    result = {}
+    
+    try:
+        topics = subprocess.check_output(["rostopic", "list"]).decode().splitlines()
+        result['topics'] = [t for t in topics if 'temperature' in t]
+    except:
+        result['topics'] = ['Error al obtener topics']
+    
+    try:
+        nodes = subprocess.check_output(["rosnode", "list"]).decode().splitlines()
+        result['nodes'] = nodes
+    except:
+        result['nodes'] = ['Error al obtener nodos']
+    
+    result['ultima_temperatura'] = temperature_bridge.get_temperature()
+    result['temperature_bridge_initialized'] = temperature_bridge.initialized
+    
+    return JsonResponse(result)
