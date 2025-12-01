@@ -1,74 +1,94 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <title>Análisis de postura</title>
-  <style>
-    body {
-      margin: 0;
-      background-color: white;
-      color: black;
-      font-family: Arial, sans-serif;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      height: 100vh;
-    }
-    h1 {
-      margin-top: 20px;
-      text-align: center;
-    }
-    #pose-container {
-      margin-top: 40px;
-      width: 70%;
-      height: 60vh;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      border: 1px solid #ccc;
-      border-radius: 8px;
-      overflow: hidden;
-      background: #f8f8f8;
-    }
-    #pose-img {
-      max-width: 100%;
-      max-height: 100%;
-      object-fit: contain;
-    }
-    .volver {
-      position: absolute;
-      bottom: 20px;
-      right: 30px;
-      padding: 10px 16px;
-      background: #e0e0e0;
-      color: black;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
-    }
-  </style>
+<meta charset="UTF-8">
+<title>Análisis de postura</title>
+
+<style>
+body {
+  background:white;
+  text-align:center;
+  font-family:Arial;
+}
+
+#pose-container{
+  margin:20px auto;
+  width:70%;
+  height:55vh;
+  border:1px solid #ccc;
+  border-radius:10px;
+}
+
+#pose-img{
+  width:100%;
+  height:100%;
+  object-fit:contain;
+}
+
+#estado{
+  margin-top:15px;
+  font-size:20px;
+  font-weight:bold;
+}
+
+.volver{
+  position:absolute;
+  bottom:20px;
+  right:30px;
+  padding:10px 16px;
+  background:#e0e0e0;
+  color:black;
+  border:none;
+  border-radius:6px;
+  cursor:pointer;
+  font-size:14px;
+}
+</style>
 </head>
 <body>
 
-  <h1>Análisis de postura</h1>
+<h1>Análisis de postura</h1>
 
-  <iframe src="{% url 'iniciar_postura' %}" style="display:none;"></iframe>
+<iframe src="{% url 'iniciar_postura' %}" style="display:none;"></iframe>
 
-  <div id="pose-container">
-    <img id="pose-img" src="{% url 'video_feed' %}" alt="Cargando...">
-  </div>
+<div id="pose-container">
+  <img id="pose-img" src="{% url 'video_feed' %}">
+</div>
 
-  <button class="volver" onclick="window.location.href='{% url 'analisis' %}'">
-    Volver
-  </button>
+<div id="estado">
+  <p id="hombros">Hombros: Sin evaluar</p>
+  <p id="cadera">Cadera: Sin evaluar</p>
+  <p id="torso">Torso: Sin evaluar</p>
+</div>
 
-  <script>
-    setInterval(() => {
-      const img = document.getElementById('pose-img');
-      img.src = "{% url 'video_feed' %}?t=" + Date.now();
-    }, 1000);
-  </script>
+<button class="volver"
+        onclick="window.location.href='{% url 'analisis' %}'">
+  Volver
+</button>
+
+<script>
+setInterval(() => {
+
+    // Actualizar imagen
+    document.getElementById("pose-img").src =
+        "{% url 'video_feed' %}?t=" + Date.now();
+
+    // Actualizar estado postura
+    fetch("{% url 'postura_feed' %}")
+        .then(r => r.json())
+        .then(data => {
+            document.getElementById("hombros").innerText =
+                "Hombros: " + data.hombros;
+
+            document.getElementById("cadera").innerText =
+                "Cadera: " + data.cadera;
+
+            document.getElementById("torso").innerText =
+                "Torso: " + data.torso;
+        });
+
+}, 1000);
+</script>
 
 </body>
 </html>

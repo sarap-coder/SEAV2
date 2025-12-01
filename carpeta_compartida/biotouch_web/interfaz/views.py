@@ -328,3 +328,50 @@ def temperature_debug(request):
     result['temperature_bridge_initialized'] = temperature_bridge.initialized
     
     return JsonResponse(result)
+
+# ---------------- POSTURA ----------------
+
+ultimo_resultado_postura = {
+    "hombros": "Sin evaluar",
+    "cadera": "Sin evaluar",
+    "torso": "Sin evaluar"
+}
+
+postura_subscriber_initialized = False
+
+
+import ast
+
+def postura_callback(msg):
+    global ultimo_resultado_postura
+
+    try:
+        # Convertimos string → dict
+        data = ast.literal_eval(msg.data)
+        ultimo_resultado_postura = data
+    except:
+        print("❌ Error leyendo resultado postura:", msg.data)
+
+
+def init_postura_listener():
+    global postura_subscriber_initialized
+
+    if postura_subscriber_initialized:
+        return
+
+    postura_subscriber_initialized = True
+
+    init_ros_once()
+
+    def listener():
+        rospy.Subscriber("/postura_resultado", String, postura_callback)
+        rospy.spin()
+
+    threading.Thread(target=listener, daemon=True).start()
+
+
+
+@login_required
+def postura_feed(request):
+    init_postura_listener()
+    return JsonResponse(ultimo_resultado_postura)
