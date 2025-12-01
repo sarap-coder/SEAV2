@@ -18,7 +18,8 @@ RUN apt update && apt install -y rviz \
          ros-noetic-usb-cam \
          htop \
          sudo \
-         libxmlrpc-core-c3-dev
+         libxmlrpc-core-c3-dev \
+         tesseract-ocr 
 
 RUN pip install catkin_tools \
                 tensorboard \
