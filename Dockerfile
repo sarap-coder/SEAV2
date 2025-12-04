@@ -27,7 +27,8 @@ RUN pip install catkin_tools \
                 ultralytics \
                 django \
                 pytesseract \
-                bleak
+                bleak \
+                watchdog
                 
 RUN rm -rf /var/lib/apt/lists/* && \
     groupadd -g 1000 tiago && \
