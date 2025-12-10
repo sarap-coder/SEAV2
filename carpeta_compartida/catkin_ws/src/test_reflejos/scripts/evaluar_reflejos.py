@@ -11,6 +11,7 @@ from trajectory_msgs.msg import JointTrajectoryPoint
 from cv_bridge import CvBridge
 from ultralytics import YOLO
 from std_msgs.msg import String
+import random
 
 class MoverBrazoYOLOCam:
     def __init__(self):
@@ -63,6 +64,17 @@ class MoverBrazoYOLOCam:
         goal.trajectory.points = [p]
         self.arm_client.send_goal(goal)
         self.arm_client.wait_for_result(rospy.Duration(6.0))
+        
+    def mover_brazo_arriba(self):
+        q_goal = [0.758, 0.928, -1.448, 1.274, -1.448, 0.070, -0.795]
+        goal = FollowJointTrajectoryGoal()
+        goal.trajectory.joint_names = self.arm_joint_names
+        p = JointTrajectoryPoint()
+        p.positions = q_goal
+        p.time_from_start = rospy.Duration(3.0)
+        goal.trajectory.points = [p]
+        self.arm_client.send_goal(goal)
+        self.arm_client.wait_for_result(rospy.Duration(6.0))
 
     
     def detectar_mouse(self):
@@ -87,7 +99,7 @@ class MoverBrazoYOLOCam:
                     cls_id = int(b.cls[0])
                     class_name = r.names[cls_id]
 
-                    if class_name == "cell phone":
+                    if class_name == "bottle":
                         objeto_detectado = True
                         break
 
@@ -106,11 +118,14 @@ class MoverBrazoYOLOCam:
             self.result_pub.publish("Objeto no detectado")
 
 
-
     def run(self):
-        self.mover_gripper(0.008)
+        
         self.mover_brazo()
+        self.mover_gripper(0.008)
+        self.mover_brazo_arriba()
+        time.sleep(random.randint(2, 4))
         self.mover_gripper(0.033)
+        time.sleep(2)
         self.detectar_mouse()
 
 if __name__ == "__main__":

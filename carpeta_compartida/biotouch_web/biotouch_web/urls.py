@@ -27,5 +27,8 @@ urlpatterns = [
     path('analisis_temperatura_live/', views.analisis_temperatura_live, name='analisis_temperatura_live'),
     path('temperature_feed/', views.temperature_feed, name='temperature_feed'),
     path('temperature_debug/', views.temperature_debug, name='temperature_debug'),  # Opcional para debug
+    path("historial/", views.historial, name="historial"),
+    path("salir/", views.salir, name="salir"),
+
     
 ]

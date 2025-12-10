@@ -24,7 +24,7 @@ RUN apt update && apt install -y rviz \
 RUN pip install catkin_tools \
                 tensorboard \
                 opencv-python \
-                ultralytics \
+                ultralytics==8.0.196 \
                 django \
                 pytesseract \
                 bleak \

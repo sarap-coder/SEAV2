@@ -11,10 +11,12 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
-from .models import AnalisisMedico
+from .models import AnalisisMedico, ResultadoSesion
 from std_msgs.msg import Int32
 from django.http import HttpResponse, FileResponse, HttpResponseNotFound
 from django.http import JsonResponse
+import csv
+
 
 ultimo_resultado_reflejos = "Sin evaluar"
 reflejos_subscriber_initialized = False
@@ -184,9 +186,97 @@ def video_feed(request):
         return HttpResponseNotFound("No se pudo leer la imagen")
 
 
+def traducir_postura(valor):
+    v = str(valor).strip()
+
+    if v in ["✅", "correcto", "ok", "1", "true", "True"]:
+        return "Postura correcta"
+    elif v in ["❌", "incorrecto", "0", "false", "False"]:
+        return "Postura incorrecta"
+    else:
+        return "Sin evaluar"
+    
+def evaluar_pulso(bpm):
+    try:
+        bpm = int(bpm)
+
+        if bpm < 60:
+            return f"{bpm} bpm | Pulso bajo"
+
+        elif 60 <= bpm <= 100:
+            return f"{bpm} bpm | Pulso normal"
+
+        else:
+            return f"{bpm} bpm | Pulso acelerado"
+
+    except:
+        return "Pulso no válido"
+
+
 @login_required
 def analisis_final(request):
-    return render(request, 'interfaz/analisis_final.html')
+
+    estado, created = AnalisisMedico.objects.get_or_create(user=request.user)
+
+    if not estado.completado_todo():
+        return redirect("analisis")
+
+    hombros_raw = ultimo_resultado_postura.get("hombros", "Sin evaluar")
+    cadera_raw = ultimo_resultado_postura.get("cadera", "Sin evaluar")
+    torso_raw = ultimo_resultado_postura.get("torso", "Sin evaluar")
+
+    hombros = traducir_postura(hombros_raw)
+    cadera = traducir_postura(cadera_raw)
+    torso = traducir_postura(torso_raw)
+
+
+    # TEMPERATURA
+    temp_raw = temperature_bridge.get_temperature().replace("°C","")
+    try:
+        temperatura = float(temp_raw)
+    except:
+        temperatura = 0.0
+
+    # PULSO
+    try:
+        pulso_valor = int(last_pulse)
+    except:
+        pulso_valor = 0
+
+    pulso = evaluar_pulso(pulso_valor)
+
+
+    raw_reflejos = ultimo_resultado_reflejos.lower().strip()
+
+    if raw_reflejos in ["detectado", "true", "1", "si", "sí"]:
+        reflejos = "Reflejos correctos"
+    else:
+        reflejos = "Reflejos incorrectos"
+
+
+    ResultadoSesion.objects.create(
+        user=request.user,
+        postura_hombros=hombros,
+        postura_cadera=cadera,
+        postura_torso=torso,
+        temperatura=temperatura,
+        pulso=pulso,
+        reflejos=reflejos,
+    )
+
+    estado.delete()
+
+    return render(request, 'interfaz/analisis_final.html', {
+        "postura_hombros": hombros,
+        "postura_cadera": cadera,
+        "postura_torso": torso,
+        "temperatura": temperatura,
+        "pulso": pulso,
+        "reflejos": reflejos,
+    })
+
+
+
 
 def salir(request):
     logout(request)
@@ -375,3 +465,45 @@ def init_postura_listener():
 def postura_feed(request):
     init_postura_listener()
     return JsonResponse(ultimo_resultado_postura)
+
+@login_required
+def historial(request):
+    historial = ResultadoSesion.objects.filter(
+        user=request.user
+    ).order_by("-fecha")
+
+    return render(request, "interfaz/historial.html", {
+        "historial": historial
+    })
+
+@login_required
+def export_historial(request):
+
+    sesiones = ResultadoSesion.objects.filter(user=request.user)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = "attachment; filename=historial.csv"
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "Fecha",
+        "Hombros",
+        "Cadera",
+        "Torso",
+        "Temp",
+        "Pulso",
+        "Reflejos",
+    ])
+
+    for s in sesiones:
+        writer.writerow([
+            s.fecha,
+            s.postura_hombros,
+            s.postura_cadera,
+            s.postura_torso,
+            s.temperatura,
+            s.pulso,
+            s.reflejos,
+        ])
+
+    return response

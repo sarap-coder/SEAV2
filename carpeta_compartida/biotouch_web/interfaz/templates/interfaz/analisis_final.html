@@ -1,12 +1,29 @@
-<!DOCTYPE html>
-<html>
-<head><title>Fin</title></head>
-<body style="text-align:center;padding-top:60px;font-family:Arial">
+<h1>✅ Análisis completado</h1>
 
-<h1>Análisis finalizado</h1>
-<p>Gracias por venir</p>
+<p>Estos son tus resultados de hoy:</p>
 
-<button onclick="window.location.href='{% url 'logout' %}'">OK</button>
+<ul>
+    <li><strong>Postura</strong>
+        <ul>
+            <li>Hombros: {{ postura_hombros }}</li>
+            <li>Cadera: {{ postura_cadera }}</li>
+            <li>Torso: {{ postura_torso }}</li>
+        </ul>
+    </li>
 
-</body>
-</html>
+    <li><strong>Temperatura:</strong> {{ temperatura }} °C</li>
+    <li><strong>Pulso:</strong> {{ pulso }} bpm</li>
+    <li><strong>Reflejos:</strong> {{ reflejos }}</li>
+</ul>
+
+<br>
+
+<a href="{% url 'historial' %}">
+    📊 Ver historial completo
+</a>
+
+<br><br>
+
+<a href="{% url 'salir' %}">
+    🚪 Cerrar sesión
+</a>

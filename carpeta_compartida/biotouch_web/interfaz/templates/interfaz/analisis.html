@@ -94,9 +94,9 @@
   {% endif %}
 
   <!-- Bloque 4: Exploración final -->
-  {% if analisis.completado_otros %}
+  {% if analisis.completado_temperatura %}
   <div class="cell" style="background:#d3d3d3;">
-    <h2>Exploración final ✅</h2>
+    <h2>Análisis de puslso ✅</h2>
     <p class="muted">Completado.</p>
   </div>
   {% else %}
@@ -108,6 +108,15 @@
     <p class="muted">Listo para comenzar.</p>
   </div>
   {% endif %}
+
+  {% if analisis.completado_todo %}
+    <form method="get" action="{% url 'analisis_final' %}">
+        <button type="submit" style="padding:10px; font-size:16px;">
+            ✅ Finalizar análisis
+        </button>
+    </form>
+{% endif %}
+
 
 </div>
 
