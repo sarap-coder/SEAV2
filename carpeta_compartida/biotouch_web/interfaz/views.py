@@ -131,11 +131,23 @@ def analisis_pulso_live(request):
     return render(request, 'interfaz/analisis_pulso_live.html')
 
 
+@login_required
 def iniciar_pulso(request):
-    launch_cmd = _ros_env_cmd("nohup rosrun clinical_exploration pulse_node.py >/tmp/pulse_node.log 2>&1 &")
+    # 1) Arrancar el nodo ROS
+    launch_cmd = _ros_env_cmd(
+        "nohup rosrun clinical_exploration pulse_node.py >/tmp/pulse_node.log 2>&1 &"
+    )
     subprocess.Popen(launch_cmd, shell=True)
+
+    # 2) Activar listener (igual que reflejos y postura)
+    init_pulse_listener()
+
     return redirect('analisis_pulso_live')
 
+
+def start_pulse_monitor():
+    """Activa el listener del pulso igual que otros módulos."""
+    init_pulse_listener()
 
 def analisis_reflejos_live(request):
     obj, _ = AnalisisMedico.objects.get_or_create(user=request.user)
@@ -379,14 +391,17 @@ def temperature_feed(request):
     
 @login_required  
 def iniciar_temperatura(request):
+    # 1) Lanza el nodo ROS
     launch_cmd = _ros_env_cmd(
         "nohup rosrun clinical_exploration temperature_node.py >/tmp/temperature_node.log 2>&1 &"
     )
     subprocess.Popen(launch_cmd, shell=True)
 
+    # 2) Activar listener
     temperature_bridge.start()
 
     return redirect('analisis_temperatura_live')
+
 
 
 @login_required
