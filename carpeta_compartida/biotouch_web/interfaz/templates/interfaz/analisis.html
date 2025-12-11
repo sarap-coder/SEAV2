@@ -57,7 +57,7 @@
     <div class="actions">
       <a class="btn btn-primary" href="{% url 'analisis_postura_live' %}">Iniciar</a>
     </div>
-    <p class="muted">Listo para comenzar.</p>
+    <p class="muted">Colócate a 1 metro delante del robot para comenzar.</p>
   </div>
   {% endif %}
 
@@ -73,7 +73,8 @@
     <div class="actions">
       <a class="btn btn-primary" href="{% url 'analisis_reflejos_live' %}">Iniciar</a>
     </div>
-    <p class="muted">Listo para comenzar.</p>
+    <p class="muted">Para esta prueba, coloca en la mano del robot la botella.</p>
+    <p class="muted">Cuando el robot la suelte tienes que tratar de cogerla y mantenerla delante suyo.</p>
   </div>
   {% endif %}
 
@@ -89,14 +90,14 @@
     <div class="actions">
       <a class="btn btn-primary" href="{% url 'analisis_pulso_live' %}">Iniciar</a>
     </div>
-    <p class="muted">Listo para comenzar.</p>
+    <p class="muted">Coloca el pulsómetro en tu muñeca para comenzar.</p>
   </div>
   {% endif %}
 
   <!-- Bloque 4: Exploración final -->
   {% if analisis.completado_temperatura %}
   <div class="cell" style="background:#d3d3d3;">
-    <h2>Análisis de puslso ✅</h2>
+    <h2>Análisis de temperatura ✅</h2>
     <p class="muted">Completado.</p>
   </div>
   {% else %}

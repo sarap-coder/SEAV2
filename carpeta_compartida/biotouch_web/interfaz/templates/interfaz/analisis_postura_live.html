@@ -31,17 +31,10 @@ body {
   font-weight:bold;
 }
 
-.volver{
-  position:absolute;
-  bottom:20px;
-  right:30px;
-  padding:10px 16px;
-  background:#e0e0e0;
-  color:black;
-  border:none;
-  border-radius:6px;
-  cursor:pointer;
-  font-size:14px;
+#timer {
+  margin-top: 15px;
+  font-size: 18px;
+  color: gray;
 }
 </style>
 </head>
@@ -61,10 +54,7 @@ body {
   <p id="torso">Torso: Sin evaluar</p>
 </div>
 
-<button class="volver"
-        onclick="window.location.href='{% url 'analisis' %}'">
-  Volver
-</button>
+<p id="timer">Finalizando en 10 segundos...</p>
 
 <script>
 setInterval(() => {
@@ -87,6 +77,21 @@ setInterval(() => {
                 "Torso: " + data.torso;
         });
 
+}, 1000);
+
+
+// ----------- ⏳ Temporizador de 10 segundos -----------
+let countdown = 10;
+const timerEl = document.getElementById("timer");
+
+const timer = setInterval(() => {
+    countdown--;
+    timerEl.innerText = "Finalizando en " + countdown + " segundos...";
+
+    if (countdown <= 0) {
+        clearInterval(timer);
+        window.location.href = "/analisis/final/";
+    }
 }, 1000);
 </script>
 

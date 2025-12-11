@@ -35,7 +35,6 @@
       font-size: 18px;
     }
 
-    /* Caja del resultado */
     #resultado-reflejos {
       margin-top: 30px;
       font-size: 24px;
@@ -48,32 +47,40 @@
 
   <h1>Evaluación de reflejos</h1>
 
-  <!-- Ejecutamos automáticamente el script -->
   <iframe src="{% url 'iniciar_evaluacion_reflejos' %}" style="display:none;"></iframe>
 
   <p>Ejecutando evaluación de reflejos…</p>
 
-  <!-- Aquí se mostrará el resultado -->
   <div id="resultado-reflejos">Esperando resultado…</div>
 
   <button class="volver" onclick="window.location.href='{% url 'analisis' %}'">
     Volver
   </button>
 
-  <!-- Script para actualizar el texto desde Django -->
   <script>
     function actualizarResultado() {
       fetch("/reflejos_feed/")
         .then(response => response.json())
         .then(data => {
+
+          const valor = data.resultado.trim().toLowerCase();
           document.getElementById("resultado-reflejos").textContent = data.resultado;
+
+          // 🟢 Condición: Si ya hay un resultado claro, finalizar automáticamente
+          if (["detectado", "no_detectado"].includes(valor)) {
+              // Esperamos medio segundo para mostrar el texto antes de salir
+              setTimeout(() => {
+                window.location.href = "/analisis/final/";
+              }, 500);
+          }
         });
     }
 
-    // Actualiza el texto cada segundo
+    // Actualiza cada segundo
     setInterval(actualizarResultado, 1000);
   </script>
 
 </body>
 </html>
+
 
