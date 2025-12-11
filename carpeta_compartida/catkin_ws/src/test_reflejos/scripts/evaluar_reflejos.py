@@ -125,7 +125,7 @@ class MoverBrazoYOLOCam:
         self.mover_brazo_arriba()
         time.sleep(random.randint(2, 4))
         self.mover_gripper(0.033)
-        time.sleep(2)
+        time.sleep(5)
         self.detectar_mouse()
 
 if __name__ == "__main__":

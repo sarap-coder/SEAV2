@@ -112,7 +112,7 @@ def _ros_env_cmd(cmd):
         bash -lc '
             set -e
             source /opt/ros/noetic/setup.bash
-            source ~/carpeta_compartida/catkin_ws/devel/setup.bash   # <<< ESTA ES LA QUE NECESITAMOS
+            source /home/tiago/carpeta_compartida/catkin_ws/devel/setup.bash
             export ROS_MASTER_URI=http://tiago-222c:11311
             export ROS_IP=10.68.0.137
             {cmd}
@@ -388,18 +388,21 @@ def temperature_feed(request):
         "status": "success"
     })
     
-    
-@login_required  
+def init_temperature_listener():
+    temperature_bridge.start()
+
+@login_required
 def iniciar_temperatura(request):
-    # 1) Lanza el nodo ROS
+    # 1) Lanzar el nodo de temperatura en background
     launch_cmd = _ros_env_cmd(
         "nohup rosrun clinical_exploration temperature_node.py >/tmp/temperature_node.log 2>&1 &"
     )
     subprocess.Popen(launch_cmd, shell=True)
 
-    # 2) Activar listener
+    # 2) Activar el listener de temperatura (bridge)
     temperature_bridge.start()
 
+    # 3) Redirigir a la vista que muestra la temperatura
     return redirect('analisis_temperatura_live')
 
 

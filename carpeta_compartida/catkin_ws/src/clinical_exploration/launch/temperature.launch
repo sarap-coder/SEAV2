@@ -1,0 +1,6 @@
+<launch>
+    <node pkg="clinical_exploration"
+          type="temperature_node.py"
+          name="temperature_node"
+          output="screen"/>
+</launch>
