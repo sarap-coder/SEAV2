@@ -24,10 +24,11 @@ RUN apt update && apt install -y rviz \
 RUN pip install catkin_tools \
                 tensorboard \
                 opencv-python \
-                ultralytics \
+                ultralytics==8.0.196 \
                 django \
                 pytesseract \
-                bleak
+                bleak \
+                watchdog
                 
 RUN rm -rf /var/lib/apt/lists/* && \
     groupadd -g 1000 tiago && \

@@ -11,10 +11,12 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth import authenticate, login, logout
-from .models import AnalisisMedico
+from .models import AnalisisMedico, ResultadoSesion
 from std_msgs.msg import Int32
 from django.http import HttpResponse, FileResponse, HttpResponseNotFound
 from django.http import JsonResponse
+import csv
+
 
 ultimo_resultado_reflejos = "Sin evaluar"
 reflejos_subscriber_initialized = False
@@ -110,7 +112,7 @@ def _ros_env_cmd(cmd):
         bash -lc '
             set -e
             source /opt/ros/noetic/setup.bash
-            source ~/carpeta_compartida/catkin_ws/devel/setup.bash   # <<< ESTA ES LA QUE NECESITAMOS
+            source /home/tiago/carpeta_compartida/catkin_ws/devel/setup.bash
             export ROS_MASTER_URI=http://tiago-222c:11311
             export ROS_IP=10.68.0.137
             {cmd}
@@ -129,11 +131,23 @@ def analisis_pulso_live(request):
     return render(request, 'interfaz/analisis_pulso_live.html')
 
 
+@login_required
 def iniciar_pulso(request):
-    launch_cmd = _ros_env_cmd("nohup rosrun clinical_exploration pulse_node.py >/tmp/pulse_node.log 2>&1 &")
+    # 1) Arrancar el nodo ROS
+    launch_cmd = _ros_env_cmd(
+        "nohup rosrun clinical_exploration pulse_node.py >/tmp/pulse_node.log 2>&1 &"
+    )
     subprocess.Popen(launch_cmd, shell=True)
+
+    # 2) Activar listener (igual que reflejos y postura)
+    init_pulse_listener()
+
     return redirect('analisis_pulso_live')
 
+
+def start_pulse_monitor():
+    """Activa el listener del pulso igual que otros módulos."""
+    init_pulse_listener()
 
 def analisis_reflejos_live(request):
     obj, _ = AnalisisMedico.objects.get_or_create(user=request.user)
@@ -184,9 +198,97 @@ def video_feed(request):
         return HttpResponseNotFound("No se pudo leer la imagen")
 
 
+def traducir_postura(valor):
+    v = str(valor).strip()
+
+    if v in ["✅", "correcto", "ok", "1", "true", "True"]:
+        return "Postura correcta"
+    elif v in ["❌", "incorrecto", "0", "false", "False"]:
+        return "Postura incorrecta"
+    else:
+        return "Sin evaluar"
+    
+def evaluar_pulso(bpm):
+    try:
+        bpm = int(bpm)
+
+        if bpm < 60:
+            return f"{bpm} bpm | Pulso bajo"
+
+        elif 60 <= bpm <= 100:
+            return f"{bpm} bpm | Pulso normal"
+
+        else:
+            return f"{bpm} bpm | Pulso acelerado"
+
+    except:
+        return "Pulso no válido"
+
+
 @login_required
 def analisis_final(request):
-    return render(request, 'interfaz/analisis_final.html')
+
+    estado, created = AnalisisMedico.objects.get_or_create(user=request.user)
+
+    if not estado.completado_todo():
+        return redirect("analisis")
+
+    hombros_raw = ultimo_resultado_postura.get("hombros", "Sin evaluar")
+    cadera_raw = ultimo_resultado_postura.get("cadera", "Sin evaluar")
+    torso_raw = ultimo_resultado_postura.get("torso", "Sin evaluar")
+
+    hombros = traducir_postura(hombros_raw)
+    cadera = traducir_postura(cadera_raw)
+    torso = traducir_postura(torso_raw)
+
+
+    # TEMPERATURA
+    temp_raw = temperature_bridge.get_temperature().replace("°C","")
+    try:
+        temperatura = float(temp_raw)
+    except:
+        temperatura = 0.0
+
+    # PULSO
+    try:
+        pulso_valor = int(last_pulse)
+    except:
+        pulso_valor = 0
+
+    pulso = evaluar_pulso(pulso_valor)
+
+
+    raw_reflejos = ultimo_resultado_reflejos.lower().strip()
+
+    if raw_reflejos in ["detectado", "true", "1", "si", "sí"]:
+        reflejos = "Reflejos correctos"
+    else:
+        reflejos = "Reflejos incorrectos"
+
+
+    ResultadoSesion.objects.create(
+        user=request.user,
+        postura_hombros=hombros,
+        postura_cadera=cadera,
+        postura_torso=torso,
+        temperatura=temperatura,
+        pulso=pulso,
+        reflejos=reflejos,
+    )
+
+    estado.delete()
+
+    return render(request, 'interfaz/analisis_final.html', {
+        "postura_hombros": hombros,
+        "postura_cadera": cadera,
+        "postura_torso": torso,
+        "temperatura": temperatura,
+        "pulso": pulso,
+        "reflejos": reflejos,
+    })
+
+
+
 
 def salir(request):
     logout(request)
@@ -286,17 +388,23 @@ def temperature_feed(request):
         "status": "success"
     })
     
-    
-@login_required  
+def init_temperature_listener():
+    temperature_bridge.start()
+
+@login_required
 def iniciar_temperatura(request):
+    # 1) Lanzar el nodo de temperatura en background
     launch_cmd = _ros_env_cmd(
         "nohup rosrun clinical_exploration temperature_node.py >/tmp/temperature_node.log 2>&1 &"
     )
     subprocess.Popen(launch_cmd, shell=True)
 
+    # 2) Activar el listener de temperatura (bridge)
     temperature_bridge.start()
 
+    # 3) Redirigir a la vista que muestra la temperatura
     return redirect('analisis_temperatura_live')
+
 
 
 @login_required
@@ -328,3 +436,92 @@ def temperature_debug(request):
     result['temperature_bridge_initialized'] = temperature_bridge.initialized
     
     return JsonResponse(result)
+
+# ---------------- POSTURA ----------------
+
+ultimo_resultado_postura = {
+    "hombros": "Sin evaluar",
+    "cadera": "Sin evaluar",
+    "torso": "Sin evaluar"
+}
+
+postura_subscriber_initialized = False
+
+
+import ast
+
+def postura_callback(msg):
+    global ultimo_resultado_postura
+
+    try:
+        # Convertimos string → dict
+        data = ast.literal_eval(msg.data)
+        ultimo_resultado_postura = data
+    except:
+        print("❌ Error leyendo resultado postura:", msg.data)
+
+
+def init_postura_listener():
+    global postura_subscriber_initialized
+
+    if postura_subscriber_initialized:
+        return
+
+    postura_subscriber_initialized = True
+
+    init_ros_once()
+
+    def listener():
+        rospy.Subscriber("/postura_resultado", String, postura_callback)
+        rospy.spin()
+
+    threading.Thread(target=listener, daemon=True).start()
+
+
+
+@login_required
+def postura_feed(request):
+    init_postura_listener()
+    return JsonResponse(ultimo_resultado_postura)
+
+@login_required
+def historial(request):
+    historial = ResultadoSesion.objects.filter(
+        user=request.user
+    ).order_by("-fecha")
+
+    return render(request, "interfaz/historial.html", {
+        "historial": historial
+    })
+
+@login_required
+def export_historial(request):
+
+    sesiones = ResultadoSesion.objects.filter(user=request.user)
+
+    response = HttpResponse(content_type="text/csv")
+    response["Content-Disposition"] = "attachment; filename=historial.csv"
+
+    writer = csv.writer(response)
+    writer.writerow([
+        "Fecha",
+        "Hombros",
+        "Cadera",
+        "Torso",
+        "Temp",
+        "Pulso",
+        "Reflejos",
+    ])
+
+    for s in sesiones:
+        writer.writerow([
+            s.fecha,
+            s.postura_hombros,
+            s.postura_cadera,
+            s.postura_torso,
+            s.temperatura,
+            s.pulso,
+            s.reflejos,
+        ])
+
+    return response

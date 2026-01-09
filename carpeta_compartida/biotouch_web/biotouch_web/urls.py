@@ -14,6 +14,7 @@ urlpatterns = [
     path('analisis_pulso_live/', views.analisis_pulso_live, name='analisis_pulso_live'),
     path('pulse_feed/', views.pulse_feed, name='pulse_feed'),
     path('video_feed/', views.video_feed, name='video_feed'),
+    path("postura_feed/", views.postura_feed, name="postura_feed"),
     path('admin/', admin.site.urls),
     path('iniciar_postura/', views.iniciar_postura, name='iniciar_postura'),
     path('analisis/otros/', views.analisis_otros, name='analisis_otros'),
@@ -26,5 +27,8 @@ urlpatterns = [
     path('analisis_temperatura_live/', views.analisis_temperatura_live, name='analisis_temperatura_live'),
     path('temperature_feed/', views.temperature_feed, name='temperature_feed'),
     path('temperature_debug/', views.temperature_debug, name='temperature_debug'),  # Opcional para debug
+    path("historial/", views.historial, name="historial"),
+    path("salir/", views.salir, name="salir"),
+
     
 ]

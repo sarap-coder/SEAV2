@@ -1,0 +1,19 @@
+<h1>Historial de evaluaciones</h1>
+
+{% if historial %}
+    {% for s in historial %}
+        <p>
+            <strong>{{ s.fecha }}</strong><br>
+            Postura:
+            Hombros: {{ s.postura_hombros }},
+            Cadera: {{ s.postura_cadera }},
+            Torso: {{ s.postura_torso }}<br>
+            Temperatura: {{ s.temperatura }} °C<br>
+            Pulso: {{ s.pulso }} bpm<br>
+            Reflejos: {{ s.reflejos }}
+        </p>
+        <hr>
+    {% endfor %}
+{% else %}
+    <p>No hay sesiones registradas.</p>
+{% endif %}

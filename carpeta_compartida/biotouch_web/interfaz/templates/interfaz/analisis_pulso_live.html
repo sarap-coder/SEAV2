@@ -22,17 +22,10 @@
       margin-top: 40px;
       font-size: 18px;
     }
-    .volver {
-      position: absolute;
-      bottom: 20px;
-      right: 30px;
-      padding: 10px 16px;
-      background: #e0e0e0;
-      color: black;
-      border: none;
-      border-radius: 6px;
-      cursor: pointer;
-      font-size: 14px;
+    #timer {
+      margin-top: 20px;
+      font-size: 16px;
+      color: gray;
     }
   </style>
 </head>
@@ -44,6 +37,9 @@
 
     <p id="pulse-text">Obteniendo datos...</p>
 
+    <p id="timer">Finalizando en 10 segundos...</p>
+
+    <!-- 🔵 Actualización del pulso -->
     <script>
     setInterval(() => {
         fetch("{% url 'pulse_feed' %}")
@@ -54,10 +50,23 @@
     }, 1000);
     </script>
 
-    <button class="volver" onclick="window.location.href='{% url 'analisis' %}'">
-    Volver
-    </button>
+    <!-- 🔥 Temporizador de 10 segundos que termina la prueba -->
+    <script>
+    let countdown = 30;
 
+    const timerEl = document.getElementById("timer");
+
+    const interval = setInterval(() => {
+        countdown--;
+        timerEl.innerText = `Finalizando en ${countdown} segundos...`;
+
+        if (countdown <= 0) {
+            clearInterval(interval);
+            window.location.href = "/analisis/final/";
+        }
+    }, 1000);
+    </script>
 
 </body>
 </html>
+
